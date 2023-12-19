@@ -22,7 +22,6 @@ by the Console itself, belong to the same CSB package.
        source trees.
 @see: [CSB 0000038]
 """
-from __future__ import print_function
 
 import os
 import sys
@@ -55,7 +54,6 @@ if __name__ == '__main__':
 """
 It is now safe to import any modules  
 """
-import imp
 import shutil
 import tarfile
 
@@ -63,6 +61,7 @@ import csb
 
 from abc import ABCMeta, abstractmethod
 from csb.io import Shell
+from pathlib import Path
 
 
 class BuildTypes(object):
@@ -288,7 +287,7 @@ Options:
             epydoc.cli.cli()
             sys.exit(0)
         except SystemExit as ex:
-            if ex.code is 0:
+            if ex.code == 0:
                 self.log('\n  Passed all doc tests')
             else:
                 if ex.code == 2:
@@ -332,8 +331,11 @@ Options:
         self.log('\n# Building {0} distribution...'.format(self._type))
         version = package = None
 
+        setup = type('Namespace', (), {})()
+        exec(compile(Path('setup.py').read_text(), 'setupcsb', 'exec'),
+             setup.__dict__, setup.__dict__)
+
         try:       
-            setup = imp.load_source('setupcsb', 'setup.py')
             d = setup.build()
             version = setup.VERSION
             package = d.dist_files[0][2]
@@ -342,7 +344,7 @@ Options:
                 self._strip_source(package)
             
         except SystemExit as ex:
-            if ex.code is not 0:
+            if ex.code != 0:
                 self.log('\n  FAIL: Setup returned: \n\n{0}\n'.format(ex))
                 self._success = False
                 package = 'FAIL'
@@ -474,7 +476,7 @@ class RevisionHandler(object):
             self._path = path
         else:
             raise IOError('Path not found: {0}'.format(path))
-        if Shell.run([sc, 'help']).code is 0:
+        if Shell.run([sc, 'help']).code == 0:
             self._sc = sc
         else:
             raise RevisionError('Source control binary probe failed', None, None)
@@ -509,16 +511,21 @@ class RevisionHandler(object):
         @return: sourcefile.__version__
         """
         content = open(sourcefile).readlines()
+        version_line = ""
         
         with open(sourcefile, 'w') as src:
             for line in content:
                 if line.startswith('__version__'):
+                    assert not version_line
+                    version_line = line.format(revision=revision)
                     src.write(line.format(revision=revision))
                 else:
                     src.write(line)
 
         self._delcache(sourcefile)
-        return imp.load_source('____source', sourcefile).__version__      
+        ns = {}
+        eval(compile(version_line, "____source", "single"), {}, ns)
+        return ns["__version__"]
     
     def _run(self, cmd):
         

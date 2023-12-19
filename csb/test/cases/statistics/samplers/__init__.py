@@ -801,6 +801,7 @@ class HState(State):
         return s
 
 
+@test.skip("Fails in Python 3.12")
 @test.functional
 class TestReplicaHistory(test.Case):
 

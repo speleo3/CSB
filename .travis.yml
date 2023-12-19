@@ -1,8 +1,7 @@
 language: python
 dist: trusty
 python:
-- '2.7'
-- '3.6'
+- '3.9'
 install:
 - pip install --upgrade pip
 - pip install --editable .[dev]
@@ -17,4 +16,4 @@ deploy:
   file: "csb-*.*"
   on:
     tags: true
-    python: "2.7"
+    python: "3.9"

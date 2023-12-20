@@ -5,10 +5,15 @@ on: [push, pull_request]
 jobs:
   build:
     runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        python-version: ["3.6", "3.12"]
+
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-python@v5
+      name: Set up Python ${{ matrix.python-version }}
       with:
-        python-version: '3.12'
+        python-version: ${{ matrix.python-version }}
     - run: pip install --editable .[dev]
     - run: python csb/build.py -o .
